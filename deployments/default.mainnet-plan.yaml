@@ -11,21 +11,21 @@ plan:
         - contract-publish:
             contract-name: milestone
             expected-sender: SP1GNDB8SXJ51GBMSVVXMWGTPRFHGSMWNNBEY25A4
-            cost: 733760
+            cost: 318760
             path: contracts/milestone.clar
             anchor-block-only: true
             clarity-version: 2
         - contract-publish:
             contract-name: sip-010-trait
             expected-sender: SP1GNDB8SXJ51GBMSVVXMWGTPRFHGSMWNNBEY25A4
-            cost: 731423
+            cost: 7540
             path: contracts/sip-010-trait.clar
             anchor-block-only: true
             clarity-version: 2
         - contract-publish:
             contract-name: test-token
             expected-sender: SP1GNDB8SXJ51GBMSVVXMWGTPRFHGSMWNNBEY25A4
-            cost: 731752
+            cost: 29310
             path: contracts/test-token.clar
             anchor-block-only: true
             clarity-version: 2
