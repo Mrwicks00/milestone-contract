@@ -9,6 +9,16 @@ requirements = []
 path = 'contracts/milestone.clar'
 clarity_version = 2
 epoch = 'latest'
+
+[contracts.sip-010-trait]
+path = 'contracts/sip-010-trait.clar'
+clarity_version = 2
+epoch = 'latest'
+
+[contracts.test-token]
+path = 'contracts/test-token.clar'
+clarity_version = 2
+epoch = 'latest'
 [repl.analysis]
 passes = [
     'check_checker',

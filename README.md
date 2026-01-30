@@ -906,6 +906,40 @@ We welcome contributions from the community!
 - **Tutorial Videos**: Step-by-step guides
 - **Community Forum**: Ask questions and share experiences
 
+## Test Token for Mainnet Testing
+
+To test the MilestoneXYZ contract on mainnet without spending real STX, we provide a test token contract.
+
+### Test Token (TEST)
+
+- **Name**: Test Token
+- **Symbol**: TEST
+- **Decimals**: 6
+- **Initial Supply**: 1,000,000 TEST
+- **Contract**: `test-token.clar`
+
+### Features
+
+- **Mint**: Owner can create unlimited test tokens
+- **Airdrop**: Distribute to multiple accounts at once
+- **SIP-010 Compliant**: Standard fungible token interface
+- **No Real Value**: Only for testing purposes
+
+### Usage
+
+```clarity
+;; Mint 10,000 TEST tokens to a test account
+(contract-call? .test-token mint u10000000000 'ST1TESTACCOUNT...)
+
+;; Airdrop to multiple users
+(contract-call? .test-token airdrop (list
+  {recipient: 'ST1USER1..., amount: u5000000000}
+  {recipient: 'ST1USER2..., amount: u5000000000}
+))
+```
+
+**Note**: The current milestone contract uses STX directly. The test token is provided for future token-based implementations.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details
