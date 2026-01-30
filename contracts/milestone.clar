@@ -276,18 +276,17 @@
       (project-id (+ (var-get project-nonce) u1))
       (client tx-sender)
       (client-fee (calculate-fee total-budget client true))
-      (total-deposit (+ total-budget client-fee))
     )
     ;; Validations
     (asserts! (>= total-budget MIN-PROJECT-VALUE) ERR-INVALID-AMOUNT)
     (asserts! (> milestones-count u0) ERR-INVALID-AMOUNT)
     (asserts! (> deadline block-height) ERR-DEADLINE-PASSED)
     
-    ;; Transfer funds to contract (escrow + fee)
-    (try! (stx-transfer? total-deposit client (as-contract tx-sender)))
+    ;; Transfer total budget to contract as escrow
+    (try! (stx-transfer? total-budget client (as-contract tx-sender)))
     
     ;; Transfer client fee to treasury
-    (try! (as-contract (stx-transfer? client-fee tx-sender (var-get platform-treasury))))
+    (try! (stx-transfer? client-fee client (var-get platform-treasury)))
     
     ;; Create project
     (map-set projects
@@ -312,10 +311,10 @@
     (var-set project-nonce project-id)
     
     ;; Add to user's projects
-    (try! (add-user-project client project-id))
+    (unwrap! (add-user-project client project-id) ERR-INVALID-AMOUNT)
     
     ;; Update client reputation
-    (try! (update-user-reputation client {
+    (unwrap! (update-user-reputation client {
       total-projects-delta: u1,
       completed-projects-delta: u0,
       earned-delta: u0,
@@ -324,7 +323,7 @@
       disputes-lost-delta: u0,
       on-time-delta: u0,
       late-delta: u0
-    }))
+    }) ERR-INVALID-AMOUNT)
     
     (ok project-id)
   )
@@ -351,10 +350,10 @@
     )
     
     ;; Add to freelancer's projects
-    (try! (add-user-project freelancer project-id))
+    (unwrap! (add-user-project freelancer project-id) ERR-INVALID-AMOUNT)
     
     ;; Update freelancer reputation
-    (try! (update-user-reputation freelancer {
+    (unwrap! (update-user-reputation freelancer {
       total-projects-delta: u1,
       completed-projects-delta: u0,
       earned-delta: u0,
@@ -363,7 +362,7 @@
       disputes-lost-delta: u0,
       on-time-delta: u0,
       late-delta: u0
-    }))
+    }) ERR-INVALID-AMOUNT)
     
     (ok true)
   )
@@ -473,10 +472,10 @@
     (asserts! (>= (get escrow-balance project) payment-amount) ERR-INSUFFICIENT-FUNDS)
     
     ;; Transfer payment to freelancer (minus platform fee)
-    (try! (as-contract (stx-transfer? net-payment tx-sender freelancer)))
+    (try! (stx-transfer? net-payment (as-contract tx-sender) freelancer))
     
     ;; Transfer freelancer fee to treasury
-    (try! (as-contract (stx-transfer? freelancer-fee tx-sender (var-get platform-treasury))))
+    (try! (stx-transfer? freelancer-fee (as-contract tx-sender) (var-get platform-treasury)))
     
     ;; Update milestone
     (map-set milestones
@@ -505,7 +504,7 @@
       )
       
       ;; Update freelancer reputation
-      (try! (update-user-reputation freelancer {
+      (unwrap! (update-user-reputation freelancer {
         total-projects-delta: u0,
         completed-projects-delta: (if all-milestones-completed u1 u0),
         earned-delta: net-payment,
@@ -514,11 +513,11 @@
         disputes-lost-delta: u0,
         on-time-delta: (if is-on-time u1 u0),
         late-delta: (if is-on-time u0 u1)
-      }))
+      }) ERR-INVALID-AMOUNT)
       
       ;; Update client reputation if project completed
       (if all-milestones-completed
-        (try! (update-user-reputation (get client project) {
+        (unwrap! (update-user-reputation (get client project) {
           total-projects-delta: u0,
           completed-projects-delta: u1,
           earned-delta: u0,
@@ -527,8 +526,8 @@
           disputes-lost-delta: u0,
           on-time-delta: u0,
           late-delta: u0
-        }))
-        (ok true)
+        }) ERR-INVALID-AMOUNT)
+        true
       )
     )
     
@@ -639,7 +638,7 @@
     (var-set dispute-nonce dispute-id)
     
     ;; Update reputation
-    (try! (update-user-reputation tx-sender {
+    (unwrap! (update-user-reputation tx-sender {
       total-projects-delta: u0,
       completed-projects-delta: u0,
       earned-delta: u0,
@@ -648,7 +647,7 @@
       disputes-lost-delta: u0,
       on-time-delta: u0,
       late-delta: u0
-    }))
+    }) ERR-INVALID-AMOUNT)
     
     (ok dispute-id)
   )
@@ -694,7 +693,7 @@
       (freelancer (unwrap! (get freelancer project) ERR-NOT-AUTHORIZED))
       (payment-amount (get payment-amount milestone))
       (client-allocation (- payment-amount freelancer-allocation))
-      (dispute-fee (calculate-fee payment-amount (get client project) false))
+      (dispute-fee (/ (* payment-amount FEE-DISPUTE) u10000))
       (loser (if (> freelancer-allocation (/ payment-amount u2)) 
                 (get client project) 
                 freelancer))
@@ -708,14 +707,20 @@
     
     ;; Transfer freelancer allocation (if any)
     (if (> freelancer-allocation u0)
-      (try! (as-contract (stx-transfer? freelancer-allocation tx-sender freelancer)))
-      (ok true)
+      (begin
+        (try! (stx-transfer? freelancer-allocation (as-contract tx-sender) freelancer))
+        true
+      )
+      true
     )
     
     ;; Transfer client refund (if any)
     (if (> client-allocation u0)
-      (try! (as-contract (stx-transfer? client-allocation tx-sender (get client project))))
-      (ok true)
+      (begin
+        (try! (stx-transfer? client-allocation (as-contract tx-sender) (get client project)))
+        true
+      )
+      true
     )
     
     ;; Collect dispute fee from loser
@@ -760,7 +765,7 @@
     )
     
     ;; Update loser's reputation
-    (try! (update-user-reputation loser {
+    (unwrap! (update-user-reputation loser {
       total-projects-delta: u0,
       completed-projects-delta: u0,
       earned-delta: u0,
@@ -769,7 +774,7 @@
       disputes-lost-delta: u1,
       on-time-delta: u0,
       late-delta: u0
-    }))
+    }) ERR-INVALID-AMOUNT)
     
     (ok true)
   )
@@ -791,8 +796,11 @@
     
     ;; Refund escrow to client
     (if (> refund-amount u0)
-      (try! (as-contract (stx-transfer? refund-amount tx-sender (get client project))))
-      (ok true)
+      (begin
+        (try! (stx-transfer? refund-amount (as-contract tx-sender) (get client project)))
+        true
+      )
+      true
     )
     
     ;; Update project

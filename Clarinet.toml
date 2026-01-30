@@ -7,7 +7,7 @@ cache_dir = './.cache'
 requirements = []
 [contracts.milestone]
 path = 'contracts/milestone.clar'
-clarity_version = 4
+clarity_version = 2
 epoch = 'latest'
 [repl.analysis]
 passes = [
